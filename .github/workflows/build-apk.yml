@@ -24,7 +24,13 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Build debug APK
-        run: gradle assembleDebug
+        run: gradle --no-daemon clean assembleDebug
+      - name: Verify APK was produced
+        run: |
+          set -eux
+          ls -lah app/build/outputs/apk/debug/
+          test -s app/build/outputs/apk/debug/app-debug.apk
+          unzip -t app/build/outputs/apk/debug/app-debug.apk
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
