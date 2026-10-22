@@ -150,10 +150,17 @@ public class MainActivity extends Activity {
         TextView unit = text("km/h", 18, CYAN, true);
         dial.addView(unit, new LinearLayout.LayoutParams(-1, dp(34)));
 
-        statusText = text("AGUARDANDO SINAL GPS…", 11, MUTED, false);
+        // Keep the GPS indicator initialized before any LocationListener callback.
+        LinearLayout statusRow = new LinearLayout(this);
+        statusRow.setOrientation(LinearLayout.HORIZONTAL);
+        statusRow.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams statusLp = new LinearLayout.LayoutParams(-1, dp(30));
         statusLp.topMargin = dp(4);
-        center.addView(statusText, statusLp);
+        gpsDot = text("●", 12, MUTED, true);
+        statusRow.addView(gpsDot, new LinearLayout.LayoutParams(dp(22), -1));
+        statusText = text("AGUARDANDO SINAL GPS…", 11, MUTED, false);
+        statusRow.addView(statusText, new LinearLayout.LayoutParams(0, -1, 1));
+        center.addView(statusRow, statusLp);
         root.addView(center, new LinearLayout.LayoutParams(-1, 0, 1));
 
         LinearLayout footer = new LinearLayout(this);
