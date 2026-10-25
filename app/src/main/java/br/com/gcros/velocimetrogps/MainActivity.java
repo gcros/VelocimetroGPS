@@ -236,7 +236,7 @@ public class MainActivity extends Activity {
 
         // NOVO MAPA: visual de navegação, área do mapa ampla e ações agrupadas em painel inferior.
         mapScreen = column();
-        mapScreen.setPadding(dp(10), dp(10), dp(10), dp(10));
+        mapScreen.setPadding(dp(10), dp(10), dp(10), dp(34)); // Reserva espaço para a barra de navegação do Android
         mapScreen.setBackgroundColor(Color.rgb(7, 15, 25));
         mapScreen.setFocusableInTouchMode(true);
 
