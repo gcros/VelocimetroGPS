@@ -146,59 +146,187 @@ public class MainActivity extends Activity {
     private LinearLayout column() { LinearLayout l=new LinearLayout(this); l.setOrientation(LinearLayout.VERTICAL); return l; }
 
     private void buildUi() {
-        content=new FrameLayout(this); content.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{Color.rgb(5,12,27),Color.rgb(12,18,38),Color.rgb(5,8,18)}));
-        speedScreen=column(); speedScreen.setGravity(Gravity.CENTER_HORIZONTAL); speedScreen.setPadding(dp(16),dp(10),dp(16),dp(12));
-        speedScroll=new android.widget.ScrollView(this); speedScroll.setFillViewport(true); speedScroll.setClipToPadding(false); speedScroll.setVerticalScrollBarEnabled(false);
-        speedScreen.addView(text("N E O N  /  D R I V E",12,CYAN,true),new LinearLayout.LayoutParams(-1,dp(26)));
-        speedScreen.addView(text("VELOCÍMETRO GPS",22,Color.WHITE,true),new LinearLayout.LayoutParams(-1,dp(38)));
-        speedScreen.addView(text("MONITOR DE VELOCIDADE",10,MUTED,false),new LinearLayout.LayoutParams(-1,dp(22)));
-        LinearLayout panel=column(); panel.setGravity(Gravity.CENTER); panel.setBackground(shape(PANEL,Color.rgb(31,48,78),1,26));
-        panel.setPadding(dp(10),dp(8),dp(10),dp(8));
-        LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(-1,-2); pp.setMargins(0,dp(8),0,dp(10)); speedScreen.addView(panel,pp);
-        panel.addView(text("VELOCIDADE ATUAL",11,MUTED,true),new LinearLayout.LayoutParams(-1,dp(28)));
-        int size=Math.max(dp(144),Math.min(getResources().getDisplayMetrics().widthPixels-dp(96),dp(208)));
-        LinearLayout dial=column(); dial.setGravity(Gravity.CENTER);
-        GradientDrawable ring=new GradientDrawable(); ring.setShape(GradientDrawable.OVAL); ring.setColor(Color.rgb(11,17,32)); ring.setStroke(dp(4),CYAN); dial.setBackground(ring);
-        LinearLayout.LayoutParams dl=new LinearLayout.LayoutParams(size,size); dl.gravity=Gravity.CENTER; dl.setMargins(0,dp(4),0,dp(5)); panel.addView(dial,dl);
-        dial.addView(text("KM / H",11,PINK,true),new LinearLayout.LayoutParams(-1,dp(24)));
-        speedText=text("—",Math.min(72, Math.max(48, size / dp(3))),Color.WHITE,true); speedText.setShadowLayer(dp(10),0,0,Color.rgb(0,100,150)); dial.addView(speedText,new LinearLayout.LayoutParams(-1,0,1));
-        dial.addView(text("km/h",15,CYAN,true),new LinearLayout.LayoutParams(-1,dp(26)));
-        LinearLayout status=new LinearLayout(this); status.setGravity(Gravity.CENTER);
-        gpsDot=text("●",12,MUTED,true); status.addView(gpsDot,new LinearLayout.LayoutParams(dp(22),dp(30)));
-        statusText=text("AGUARDANDO SINAL GPS…",11,MUTED,false); status.addView(statusText,new LinearLayout.LayoutParams(0,dp(30),1));
-        panel.addView(status,new LinearLayout.LayoutParams(-1,dp(34)));
-        panel.addView(text("ALERTAS: 80  •  100  •  120 km/h",11,MUTED,true),new LinearLayout.LayoutParams(-1,dp(32)));
-        Button openMap=button("⌖  ABRIR MAPA E NAVEGAÇÃO"); openMap.setOnClickListener(v->showMap());
-        speedScreen.addView(openMap,new LinearLayout.LayoutParams(-1,dp(52)));
-        speedScroll.addView(speedScreen,new android.widget.ScrollView.LayoutParams(-1,-2));
-        mapScreen=column(); mapScreen.setPadding(dp(8),dp(6),dp(8),dp(6));
-        LinearLayout top=new LinearLayout(this); top.setGravity(Gravity.CENTER_VERTICAL);
-        Button back=button("‹ Velocímetro"); back.setOnClickListener(v->showSpeed());
-        top.addView(back,new LinearLayout.LayoutParams(dp(128),dp(42)));
-        top.addView(text("MAPA OSM",17,CYAN,true),new LinearLayout.LayoutParams(0,dp(42),1));
-        mapScreen.addView(top);
-        LinearLayout searchRow=new LinearLayout(this); searchRow.setGravity(Gravity.CENTER_VERTICAL);
-        destinationInput=new EditText(this); destinationInput.setSingleLine(true); destinationInput.setTextColor(Color.WHITE);
-        destinationInput.setHintTextColor(MUTED); destinationInput.setHint("Destino (cidade, endereço ou local)");
-        destinationInput.setTextSize(14); destinationInput.setPadding(dp(12),0,dp(8),0); destinationInput.setBackground(shape(PANEL,Color.rgb(40,70,95),1,12));
-        searchRow.addView(destinationInput,new LinearLayout.LayoutParams(0,dp(46),1));
-        Button go=button("IR"); go.setOnClickListener(v->calculateRoute());
-        LinearLayout.LayoutParams gp=new LinearLayout.LayoutParams(dp(58),dp(46)); gp.setMargins(dp(6),0,0,0); searchRow.addView(go,gp);
-        mapScreen.addView(searchRow,new LinearLayout.LayoutParams(-1,dp(50)));
-        navInfo=text("Mapa gratuito • tiles vistos ficam em cache para uso sem internet",11,MUTED,false);
-        navInfo.setGravity(Gravity.CENTER_VERTICAL); mapScreen.addView(navInfo,new LinearLayout.LayoutParams(-1,dp(34)));
-        map=new MapView(this); map.setTileSource(TileSourceFactory.MAPNIK); map.setMultiTouchControls(true);
-        map.setTilesScaledToDpi(true); map.getController().setZoom(15.0);
-        GeoPoint initial=new GeoPoint(-30.9,-53.25); map.getController().setCenter(initial);
-        mapScreen.addView(map,new LinearLayout.LayoutParams(-1,0,1));
-        Button gpsBtn=button("◎  CENTRALIZAR NO MEU GPS"); gpsBtn.setOnClickListener(v->{if(currentLocation!=null)map.getController().animateTo(new GeoPoint(currentLocation.getLatitude(),currentLocation.getLongitude()));else Toast.makeText(this,"Aguardando sinal GPS",Toast.LENGTH_SHORT).show();});
-        LinearLayout.LayoutParams glp=new LinearLayout.LayoutParams(-1,dp(42)); glp.setMargins(0,dp(4),0,0); mapScreen.addView(gpsBtn,glp);
-        Button markBtn=button("＋  MARCAR AQUI"); markBtn.setOnClickListener(v->createSavedPlace());
-        LinearLayout.LayoutParams mlp=new LinearLayout.LayoutParams(-1,dp(44)); mlp.setMargins(0,dp(4),0,0); mapScreen.addView(markBtn,mlp);
-        Button placesBtn=button("★  MINHAS MARCAÇÕES"); placesBtn.setOnClickListener(v->showSavedPlaces());
-        LinearLayout.LayoutParams slp=new LinearLayout.LayoutParams(-1,dp(40)); slp.setMargins(0,dp(4),0,0); mapScreen.addView(placesBtn,slp);
+        // Mantém a interface dentro da área segura do Android.
+        if (Build.VERSION.SDK_INT >= 21) {
+            getWindow().setStatusBarColor(Color.rgb(5, 12, 27));
+            getWindow().setNavigationBarColor(Color.rgb(5, 12, 27));
+            getWindow().getDecorView().setSystemUiVisibility(0);
+        }
+
+        content = new FrameLayout(this);
+        content.setBackgroundColor(BG);
+
+        // Tela do velocímetro: cabeçalho, mostrador e status em cartões separados.
+        speedScreen = column();
+        speedScreen.setPadding(dp(18), dp(14), dp(18), dp(18));
+        speedScreen.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        speedScroll = new android.widget.ScrollView(this);
+        speedScroll.setFillViewport(true);
+        speedScroll.setClipToPadding(false);
+        speedScroll.setVerticalScrollBarEnabled(false);
+
+        LinearLayout brandRow = new LinearLayout(this);
+        brandRow.setGravity(Gravity.CENTER_VERTICAL);
+        TextView brand = text("TERRACONTROL", 12, CYAN, true);
+        brand.setGravity(Gravity.CENTER_VERTICAL | Gravity.LEFT);
+        brandRow.addView(brand, new LinearLayout.LayoutParams(0, dp(28), 1));
+        TextView live = text("● GPS", 11, CYAN, true);
+        live.setPadding(dp(10), dp(6), dp(10), dp(6));
+        live.setBackground(shape(Color.rgb(9, 45, 54), Color.rgb(0, 130, 150), 1, 20));
+        brandRow.addView(live, new LinearLayout.LayoutParams(-2, dp(30)));
+        speedScreen.addView(brandRow, new LinearLayout.LayoutParams(-1, dp(34)));
+
+        TextView heading = text("Velocímetro GPS", 25, Color.WHITE, true);
+        heading.setGravity(Gravity.CENTER_VERTICAL | Gravity.LEFT);
+        speedScreen.addView(heading, new LinearLayout.LayoutParams(-1, dp(42)));
+        TextView subtitle = text("Sua velocidade em tempo real", 13, MUTED, false);
+        subtitle.setGravity(Gravity.CENTER_VERTICAL | Gravity.LEFT);
+        speedScreen.addView(subtitle, new LinearLayout.LayoutParams(-1, dp(28)));
+
+        LinearLayout panel = column();
+        panel.setGravity(Gravity.CENTER_HORIZONTAL);
+        panel.setPadding(dp(16), dp(16), dp(16), dp(16));
+        panel.setBackground(shape(PANEL, Color.rgb(35, 55, 82), 1, 24));
+        LinearLayout.LayoutParams panelParams = new LinearLayout.LayoutParams(-1, -2);
+        panelParams.setMargins(0, dp(14), 0, dp(12));
+        speedScreen.addView(panel, panelParams);
+
+        TextView currentLabel = text("VELOCIDADE ATUAL", 12, MUTED, true);
+        panel.addView(currentLabel, new LinearLayout.LayoutParams(-1, dp(26)));
+        int available = getResources().getDisplayMetrics().widthPixels - dp(100);
+        int size = Math.max(dp(160), Math.min(available, dp(220)));
+        LinearLayout dial = column();
+        dial.setGravity(Gravity.CENTER);
+        GradientDrawable ring = new GradientDrawable();
+        ring.setShape(GradientDrawable.OVAL);
+        ring.setColor(Color.rgb(8, 15, 30));
+        ring.setStroke(dp(4), CYAN);
+        dial.setBackground(ring);
+        LinearLayout.LayoutParams dialParams = new LinearLayout.LayoutParams(size, size);
+        dialParams.gravity = Gravity.CENTER;
+        dialParams.setMargins(0, dp(8), 0, dp(12));
+        panel.addView(dial, dialParams);
+        dial.addView(text("KM/H", 11, PINK, true), new LinearLayout.LayoutParams(-1, dp(28)));
+        speedText = text("—", Math.max(48, Math.min(72, size / Math.max(1, dp(3)))), Color.WHITE, true);
+        speedText.setShadowLayer(dp(8), 0, 0, Color.rgb(0, 100, 150));
+        dial.addView(speedText, new LinearLayout.LayoutParams(-1, 0, 1));
+        dial.addView(text("km/h", 15, CYAN, true), new LinearLayout.LayoutParams(-1, dp(30)));
+
+        LinearLayout statusCard = new LinearLayout(this);
+        statusCard.setGravity(Gravity.CENTER_VERTICAL);
+        statusCard.setPadding(dp(12), dp(8), dp(12), dp(8));
+        statusCard.setBackground(shape(Color.rgb(10, 28, 42), Color.rgb(25, 72, 90), 1, 14));
+        gpsDot = text("●", 12, PINK, true);
+        statusCard.addView(gpsDot, new LinearLayout.LayoutParams(dp(24), dp(34)));
+        statusText = text("Aguardando sinal GPS…", 12, MUTED, true);
+        statusText.setGravity(Gravity.CENTER_VERTICAL | Gravity.LEFT);
+        statusCard.addView(statusText, new LinearLayout.LayoutParams(0, dp(34), 1));
+        panel.addView(statusCard, new LinearLayout.LayoutParams(-1, dp(52)));
+
+        TextView alertInfo = text("Alertas sonoros: 80  •  100  •  120 km/h", 12, MUTED, false);
+        LinearLayout.LayoutParams alertParams = new LinearLayout.LayoutParams(-1, dp(34));
+        alertParams.setMargins(0, dp(4), 0, 0);
+        panel.addView(alertInfo, alertParams);
+
+        Button openMap = button("⌖   ABRIR MAPA E NAVEGAÇÃO");
+        openMap.setTextSize(14);
+        openMap.setOnClickListener(v -> showMap());
+        speedScreen.addView(openMap, new LinearLayout.LayoutParams(-1, dp(54)));
+        speedScroll.addView(speedScreen, new android.widget.ScrollView.LayoutParams(-1, -2));
+
+        // Mapa: cabeçalho e busca fixos, mapa flexível e ações em uma barra inferior.
+        mapScreen = column();
+        mapScreen.setPadding(dp(12), dp(8), dp(12), dp(10));
+        mapScreen.setFocusableInTouchMode(true);
+
+        LinearLayout top = new LinearLayout(this);
+        top.setGravity(Gravity.CENTER_VERTICAL);
+        Button back = button("‹  VOLTAR");
+        back.setTextSize(12);
+        back.setOnClickListener(v -> showSpeed());
+        top.addView(back, new LinearLayout.LayoutParams(dp(112), dp(44)));
+        LinearLayout titleBox = column();
+        titleBox.setGravity(Gravity.CENTER_VERTICAL);
+        TextView mapTitle = text("Navegação", 20, Color.WHITE, true);
+        mapTitle.setGravity(Gravity.CENTER_VERTICAL | Gravity.LEFT);
+        titleBox.addView(mapTitle, new LinearLayout.LayoutParams(-1, dp(26)));
+        TextView mapSubtitle = text("MAPA • OPENSTREETMAP", 9, CYAN, true);
+        mapSubtitle.setGravity(Gravity.CENTER_VERTICAL | Gravity.LEFT);
+        titleBox.addView(mapSubtitle, new LinearLayout.LayoutParams(-1, dp(18)));
+        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(0, dp(44), 1);
+        titleParams.setMargins(dp(12), 0, 0, 0);
+        top.addView(titleBox, titleParams);
+        mapScreen.addView(top, new LinearLayout.LayoutParams(-1, dp(48)));
+
+        LinearLayout searchCard = new LinearLayout(this);
+        searchCard.setGravity(Gravity.CENTER_VERTICAL);
+        searchCard.setPadding(dp(8), dp(6), dp(8), dp(6));
+        searchCard.setBackground(shape(PANEL, Color.rgb(35, 55, 82), 1, 16));
+        destinationInput = new EditText(this);
+        destinationInput.setSingleLine(true);
+        destinationInput.setTextColor(Color.WHITE);
+        destinationInput.setHintTextColor(MUTED);
+        destinationInput.setHint("Cidade, endereço ou destino");
+        destinationInput.setTextSize(14);
+        destinationInput.setPadding(dp(10), 0, dp(8), 0);
+        destinationInput.setBackgroundColor(Color.TRANSPARENT);
+        searchCard.addView(destinationInput, new LinearLayout.LayoutParams(0, dp(46), 1));
+        Button go = button("IR");
+        go.setTextSize(13);
+        go.setOnClickListener(v -> calculateRoute());
+        LinearLayout.LayoutParams goParams = new LinearLayout.LayoutParams(dp(58), dp(44));
+        goParams.setMargins(dp(6), 0, 0, 0);
+        searchCard.addView(go, goParams);
+        LinearLayout.LayoutParams searchParams = new LinearLayout.LayoutParams(-1, dp(58));
+        searchParams.setMargins(0, dp(8), 0, dp(6));
+        mapScreen.addView(searchCard, searchParams);
+
+        navInfo = text("Mapa gratuito • aguardando destino", 11, MUTED, false);
+        navInfo.setGravity(Gravity.CENTER_VERTICAL | Gravity.LEFT);
+        navInfo.setPadding(dp(4), 0, dp(4), 0);
+        mapScreen.addView(navInfo, new LinearLayout.LayoutParams(-1, dp(30)));
+
+        map = new MapView(this);
+        map.setTileSource(TileSourceFactory.MAPNIK);
+        map.setMultiTouchControls(true);
+        map.setTilesScaledToDpi(true);
+        map.getController().setZoom(15.0);
+        map.getController().setCenter(new GeoPoint(-30.9, -53.25));
+        map.setBackgroundColor(Color.rgb(232, 230, 222));
+        LinearLayout.LayoutParams mapParams = new LinearLayout.LayoutParams(-1, 0, 1);
+        mapParams.setMargins(0, dp(4), 0, dp(10));
+        mapScreen.addView(map, mapParams);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setGravity(Gravity.CENTER_VERTICAL);
+        Button gpsBtn = button("◎  MEU GPS");
+        gpsBtn.setTextSize(11);
+        gpsBtn.setOnClickListener(v -> {
+            if (currentLocation != null) {
+                map.getController().animateTo(new GeoPoint(currentLocation.getLatitude(), currentLocation.getLongitude()));
+                map.getController().setZoom(16.0);
+            } else Toast.makeText(this, "Aguardando sinal GPS", Toast.LENGTH_SHORT).show();
+        });
+        actions.addView(gpsBtn, new LinearLayout.LayoutParams(0, dp(48), 1));
+        Button markBtn = button("＋  MARCAR");
+        markBtn.setTextSize(11);
+        markBtn.setOnClickListener(v -> createSavedPlace());
+        LinearLayout.LayoutParams markParams = new LinearLayout.LayoutParams(0, dp(48), 1);
+        markParams.setMargins(dp(8), 0, 0, 0);
+        actions.addView(markBtn, markParams);
+        LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(-1, dp(50));
+        actionsParams.setMargins(0, 0, 0, dp(6));
+        mapScreen.addView(actions, actionsParams);
+
+        Button placesBtn = button("★  MINHAS MARCAÇÕES");
+        placesBtn.setTextSize(12);
+        placesBtn.setOnClickListener(v -> showSavedPlaces());
+        mapScreen.addView(placesBtn, new LinearLayout.LayoutParams(-1, dp(46)));
+
         loadPlaceMarkers();
-        content.addView(speedScroll,new FrameLayout.LayoutParams(-1,-1)); setContentView(content);
+        content.addView(speedScroll, new FrameLayout.LayoutParams(-1, -1));
+        setContentView(content);
     }
     private void showMap() { content.removeAllViews(); content.addView(mapScreen); if(map!=null)map.onResume(); if(currentLocation!=null)map.getController().animateTo(new GeoPoint(currentLocation.getLatitude(),currentLocation.getLongitude())); }
     private void showSpeed() { if(map!=null)map.onPause(); content.removeAllViews(); content.addView(speedScroll,new FrameLayout.LayoutParams(-1,-1)); }
