@@ -2,6 +2,14 @@ package br.com.gcros.velocimetrogps;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.SharedPreferences;
+import android.content.Intent;
+import android.os.Build;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -62,6 +70,10 @@ public class MainActivity extends Activity {
     private Location currentLocation;
     private Polyline routeLine;
     private Marker userMarker;
+    private final java.util.ArrayList<Marker> savedPlaceMarkers = new java.util.ArrayList<>();
+    private JSONArray savedPlaces = new JSONArray();
+    private SharedPreferences prefs;
+    private static final String PLACE_CHANNEL = "saved_place_alerts";
     private final ExecutorService network = Executors.newSingleThreadExecutor();
 
     private final LocationListener listener = new LocationListener() {
@@ -78,6 +90,7 @@ public class MainActivity extends Activity {
             statusText.setText("GPS ATIVO • PRECISÃO ±" + (loc.hasAccuracy() ? (int)loc.getAccuracy() : "?") + " m");
             gpsDot.setTextColor(CYAN);
             handleAlerts(speed);
+            checkSavedPlaces(loc);
             if (map != null) {
                 GeoPoint p = new GeoPoint(loc.getLatitude(), loc.getLongitude());
                 if (userMarker == null) {
@@ -101,7 +114,13 @@ public class MainActivity extends Activity {
         getWindow().setStatusBarColor(BG); getWindow().setNavigationBarColor(BG);
         Configuration.getInstance().setUserAgentValue(getPackageName());
         Configuration.getInstance().setTileFileSystemCacheMaxBytes(150L * 1024 * 1024);
+        prefs = getSharedPreferences("saved_places", MODE_PRIVATE);
+        try { savedPlaces = new JSONArray(prefs.getString("places", "[]")); } catch (Exception ignored) { savedPlaces = new JSONArray(); }
         buildUi();
+        createNotificationChannel();
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 42);
+        }
         locationManager = (LocationManager)getSystemService(LOCATION_SERVICE);
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED &&
             checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)!=PackageManager.PERMISSION_GRANTED) {
@@ -135,7 +154,8 @@ public class MainActivity extends Activity {
         panel.setPadding(dp(12),dp(18),dp(12),dp(18));
         LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(-1,0,1); pp.setMargins(0,dp(14),0,dp(12)); speedScreen.addView(panel,pp);
         panel.addView(text("VELOCIDADE ATUAL",11,MUTED,true),new LinearLayout.LayoutParams(-1,dp(28)));
-        int size=Math.max(dp(190),Math.min(getResources().getDisplayMetrics().widthPixels-dp(80),dp(280)));
+        int usableHeight = getResources().getDisplayMetrics().heightPixels - dp(390);
+        int size=Math.max(dp(132),Math.min(Math.min(getResources().getDisplayMetrics().widthPixels-dp(80), usableHeight),dp(250)));
         LinearLayout dial=column(); dial.setGravity(Gravity.CENTER);
         GradientDrawable ring=new GradientDrawable(); ring.setShape(GradientDrawable.OVAL); ring.setColor(Color.rgb(11,17,32)); ring.setStroke(dp(4),CYAN); dial.setBackground(ring);
         LinearLayout.LayoutParams dl=new LinearLayout.LayoutParams(size,size); dl.gravity=Gravity.CENTER; dl.setMargins(0,dp(8),0,dp(12)); panel.addView(dial,dl);
@@ -171,10 +191,93 @@ public class MainActivity extends Activity {
         mapScreen.addView(map,new LinearLayout.LayoutParams(-1,0,1));
         Button gpsBtn=button("◎  CENTRALIZAR NO MEU GPS"); gpsBtn.setOnClickListener(v->{if(currentLocation!=null)map.getController().animateTo(new GeoPoint(currentLocation.getLatitude(),currentLocation.getLongitude()));else Toast.makeText(this,"Aguardando sinal GPS",Toast.LENGTH_SHORT).show();});
         LinearLayout.LayoutParams glp=new LinearLayout.LayoutParams(-1,dp(48)); glp.setMargins(0,dp(6),0,0); mapScreen.addView(gpsBtn,glp);
+        Button markBtn=button("＋  MARCAR AQUI"); markBtn.setOnClickListener(v->createSavedPlace());
+        LinearLayout.LayoutParams mlp=new LinearLayout.LayoutParams(-1,dp(50)); mlp.setMargins(0,dp(6),0,0); mapScreen.addView(markBtn,mlp);
+        Button placesBtn=button("★  MINHAS MARCAÇÕES"); placesBtn.setOnClickListener(v->showSavedPlaces());
+        LinearLayout.LayoutParams slp=new LinearLayout.LayoutParams(-1,dp(46)); slp.setMargins(0,dp(5),0,0); mapScreen.addView(placesBtn,slp);
+        loadPlaceMarkers();
         content.addView(speedScreen); setContentView(content);
     }
     private void showMap() { content.removeAllViews(); content.addView(mapScreen); if(map!=null)map.onResume(); if(currentLocation!=null)map.getController().animateTo(new GeoPoint(currentLocation.getLatitude(),currentLocation.getLongitude())); }
     private void showSpeed() { if(map!=null)map.onPause(); content.removeAllViews(); content.addView(speedScreen); }
+
+    private void createSavedPlace() {
+        if (currentLocation == null) { Toast.makeText(this, "Aguardando sinal GPS para marcar o lugar", Toast.LENGTH_LONG).show(); return; }
+        LinearLayout form = column(); form.setPadding(dp(8), dp(4), dp(8), dp(4));
+        EditText name = new EditText(this); name.setSingleLine(true); name.setHint("Nome do lugar (ex.: Santinha da estrada)");
+        EditText desc = new EditText(this); desc.setHint("Descrição (opcional)"); desc.setMinLines(2);
+        form.addView(name, new LinearLayout.LayoutParams(-1, dp(52))); form.addView(desc, new LinearLayout.LayoutParams(-1, dp(78)));
+        new AlertDialog.Builder(this).setTitle("Marcar lugar atual").setMessage("A posição GPS atual será salva. O aviso será a 500 metros.")
+            .setView(form).setNegativeButton("Cancelar", null).setPositiveButton("Escolher ícone", (d,w) -> {
+                String placeName = name.getText().toString().trim(); if (placeName.isEmpty()) placeName = "Lugar salvo";
+                String placeDesc = desc.getText().toString().trim();
+                final String finalName = placeName, finalDesc = placeDesc;
+                String[] icons = {"⛪ Igreja / capela", "✝️ Cruz / santinha", "⛽ Posto", "🔧 Oficina", "🌉 Ponte", "💧 Cachoeira", "🍴 Restaurante", "📍 Outro"};
+                String[] symbols = {"⛪","✝️","⛽","🔧","🌉","💧","🍴","📍"};
+                new AlertDialog.Builder(this).setTitle("Escolha um ícone").setItems(icons, (dialog, which) -> {
+                    try {
+                        JSONObject p = new JSONObject(); p.put("id", System.currentTimeMillis()); p.put("name", finalName); p.put("description", finalDesc);
+                        p.put("icon", symbols[which]); p.put("lat", currentLocation.getLatitude()); p.put("lon", currentLocation.getLongitude());
+                        p.put("radius", 500); p.put("alerted", false); savedPlaces.put(p); savePlaces(); loadPlaceMarkers();
+                        Toast.makeText(this, "Lugar salvo! Aviso a 500 metros.", Toast.LENGTH_LONG).show();
+                    } catch (Exception e) { Toast.makeText(this, "Não foi possível salvar a marcação", Toast.LENGTH_SHORT).show(); }
+                }).show();
+            }).show();
+    }
+    private void savePlaces() { if (prefs != null) prefs.edit().putString("places", savedPlaces.toString()).apply(); }
+    private void loadPlaceMarkers() {
+        if (map == null) return;
+        for (Marker m : savedPlaceMarkers) map.getOverlays().remove(m);
+        savedPlaceMarkers.clear();
+        for (int i=0;i<savedPlaces.length();i++) try {
+            JSONObject p=savedPlaces.getJSONObject(i); Marker m=new Marker(map);
+            m.setPosition(new GeoPoint(p.getDouble("lat"),p.getDouble("lon")));
+            m.setTitle(p.optString("icon","📍")+" "+p.optString("name","Lugar salvo"));
+            String desc=p.optString("description",""); if(!desc.isEmpty())m.setSnippet(desc);
+            m.setAnchor(Marker.ANCHOR_CENTER,Marker.ANCHOR_BOTTOM); map.getOverlays().add(m); savedPlaceMarkers.add(m);
+        } catch(Exception ignored) {}
+        map.invalidate();
+    }
+    private void showSavedPlaces() {
+        if (savedPlaces.length()==0) { new AlertDialog.Builder(this).setTitle("Minhas marcações").setMessage("Ainda não há lugares salvos. Use MARCAR AQUI quando estiver no local.").setPositiveButton("OK",null).show(); return; }
+        String[] items=new String[savedPlaces.length()];
+        for(int i=0;i<savedPlaces.length();i++) { JSONObject p=savedPlaces.optJSONObject(i); items[i]=(p==null?"📍":p.optString("icon","📍"))+" "+(p==null?"Lugar":p.optString("name","Lugar"))+" • aviso 500 m"; }
+        new AlertDialog.Builder(this).setTitle("Minhas marcações").setItems(items,(d,which)->{
+            JSONObject p=savedPlaces.optJSONObject(which); if(p==null)return;
+            map.getController().animateTo(new GeoPoint(p.optDouble("lat"),p.optDouble("lon"))); map.getController().setZoom(17.0);
+            String detail=p.optString("description","Sem descrição")+"\nAviso: 500 metros";
+            new AlertDialog.Builder(this).setTitle(p.optString("icon","📍")+" "+p.optString("name","Lugar")).setMessage(detail)
+                .setPositiveButton("OK",null).setNegativeButton("Excluir",(dd,ww)->{ JSONArray updated=new JSONArray(); for(int j=0;j<savedPlaces.length();j++)if(j!=which)updated.put(savedPlaces.optJSONObject(j)); savedPlaces=updated; savePlaces(); loadPlaceMarkers(); Toast.makeText(this,"Marcação excluída",Toast.LENGTH_SHORT).show(); }).show();
+        }).setNegativeButton("Fechar",null).show();
+    }
+    private void checkSavedPlaces(Location loc) {
+        boolean changed=false;
+        for(int i=0;i<savedPlaces.length();i++) try {
+            JSONObject p=savedPlaces.getJSONObject(i); if(p.optBoolean("alerted",false))continue;
+            float[] result=new float[1]; Location.distanceBetween(loc.getLatitude(),loc.getLongitude(),p.getDouble("lat"),p.getDouble("lon"),result);
+            if(result[0] <= p.optInt("radius",500)) {
+                String name=p.optString("name","Lugar salvo"); String icon=p.optString("icon","📍");
+                notifyPlace(icon+" Ponto próximo!", name+(p.optString("description","").isEmpty()?"":" — "+p.optString("description","")));
+                p.put("alerted",true); changed=true;
+            }
+        } catch(Exception ignored) {}
+        if(changed)savePlaces();
+    }
+    private void createNotificationChannel() {
+        if(Build.VERSION.SDK_INT>=26) { NotificationChannel channel=new NotificationChannel(PLACE_CHANNEL,"Avisos de lugares salvos",NotificationManager.IMPORTANCE_HIGH); channel.setDescription("Avisos quando você se aproxima de uma marcação GPS"); getSystemService(NotificationManager.class).createNotificationChannel(channel); }
+    }
+    private void notifyPlace(String title,String message) {
+        try {
+            if(Build.VERSION.SDK_INT>=33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS")!=PackageManager.PERMISSION_GRANTED) { Toast.makeText(this,title+" "+message,Toast.LENGTH_LONG).show(); return; }
+            if(tones==null)tones=new ToneGenerator(AudioManager.STREAM_NOTIFICATION,85);
+            tones.startTone(ToneGenerator.TONE_PROP_ACK,450);
+            Notification.Builder b=Build.VERSION.SDK_INT>=26?new Notification.Builder(this,PLACE_CHANNEL):new Notification.Builder(this);
+            b.setSmallIcon(android.R.drawable.ic_dialog_map).setContentTitle(title).setContentText(message).setStyle(new Notification.BigTextStyle().bigText(message)).setAutoCancel(true);
+            Intent intent=new Intent(this,MainActivity.class); PendingIntent pi=PendingIntent.getActivity(this,0,intent,PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT>=23?PendingIntent.FLAG_IMMUTABLE:0)); b.setContentIntent(pi);
+            ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify((int)(System.currentTimeMillis()%100000),b.build());
+        } catch(Exception ignored) {}
+    }
+
     private void startGps() {
         try {
             if(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED &&
