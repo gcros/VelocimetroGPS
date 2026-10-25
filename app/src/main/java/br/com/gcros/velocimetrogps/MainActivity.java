@@ -140,7 +140,7 @@ public class MainActivity extends Activity {
     }
     private Button button(String label) {
         Button b=new Button(this); b.setText(label); b.setTextColor(Color.WHITE); b.setAllCaps(false);
-        b.setTextSize(13); b.setTypeface(Typeface.create("sans-serif-medium",Typeface.BOLD)); b.setGravity(Gravity.CENTER); b.setPadding(dp(10),0,dp(10),0); b.setMinHeight(0); b.setMinimumHeight(0); b.setInsetTop(0); b.setInsetBottom(0); b.setElevation(dp(2)); b.setBackground(shape(Color.rgb(18,32,52),Color.rgb(0,190,220),1,15)); return b;
+        b.setTextSize(13); b.setTypeface(Typeface.create("sans-serif-medium",Typeface.BOLD)); b.setGravity(Gravity.CENTER); b.setPadding(dp(10),0,dp(10),0); b.setMinHeight(0); b.setMinimumHeight(0); b.setElevation(dp(2)); b.setBackground(shape(Color.rgb(18,32,52),Color.rgb(0,190,220),1,15)); return b;
     }
     private LinearLayout column() { LinearLayout l=new LinearLayout(this); l.setOrientation(LinearLayout.VERTICAL); return l; }
 
