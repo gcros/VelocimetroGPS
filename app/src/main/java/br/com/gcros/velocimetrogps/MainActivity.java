@@ -194,8 +194,9 @@ public class MainActivity extends Activity {
             try {
                 String q=URLEncoder.encode(dest,"UTF-8");
                 JSONObject geo=getJson("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q="+q);
-                if(geo.length()==0)throw new Exception("Destino não encontrado");
-                JSONObject target=geo.getJSONObject(0);
+                JSONArray found=geo.optJSONArray("items");
+                if(found==null||found.length()==0)throw new Exception("Destino não encontrado");
+                JSONObject target=found.getJSONObject(0);
                 double lat=target.getDouble("lat"), lon=target.getDouble("lon");
                 Location origin=currentLocation;
                 JSONObject route=getJson("https://router.project-osrm.org/route/v1/driving/"+origin.getLongitude()+","+origin.getLatitude()+";"+lon+","+lat+"?overview=full&geometries=geojson&steps=true");
