@@ -85,7 +85,7 @@ public class MainActivity extends Activity {
                     map.getOverlays().add(userMarker);
                 }
                 userMarker.setPosition(p);
-                if (map.getController().getZoom() < 14) map.getController().setZoom(16.0);
+                if (map.getZoomLevelDouble() < 14) map.getController().setZoom(16.0);
                 map.getController().animateTo(p);
                 map.invalidate();
             }
