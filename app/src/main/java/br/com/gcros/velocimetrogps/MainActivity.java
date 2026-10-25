@@ -234,57 +234,68 @@ public class MainActivity extends Activity {
         speedScreen.addView(openMap, new LinearLayout.LayoutParams(-1, dp(54)));
         speedScroll.addView(speedScreen, new android.widget.ScrollView.LayoutParams(-1, -2));
 
-        // Mapa: cabeçalho e busca fixos, mapa flexível e ações em uma barra inferior.
+        // NOVO MAPA: visual de navegação, área do mapa ampla e ações agrupadas em painel inferior.
         mapScreen = column();
-        mapScreen.setPadding(dp(12), dp(8), dp(12), dp(10));
+        mapScreen.setPadding(dp(10), dp(10), dp(10), dp(10));
+        mapScreen.setBackgroundColor(Color.rgb(7, 15, 25));
         mapScreen.setFocusableInTouchMode(true);
 
         LinearLayout top = new LinearLayout(this);
         top.setGravity(Gravity.CENTER_VERTICAL);
-        Button back = button("‹  VOLTAR");
-        back.setTextSize(12);
+        top.setPadding(dp(4), 0, dp(4), 0);
+        Button back = button("‹");
+        back.setTextSize(26);
+        back.setBackground(shape(Color.rgb(22, 35, 49), Color.rgb(42, 65, 83), 1, 14));
         back.setOnClickListener(v -> showSpeed());
-        top.addView(back, new LinearLayout.LayoutParams(dp(112), dp(44)));
+        top.addView(back, new LinearLayout.LayoutParams(dp(48), dp(48)));
         LinearLayout titleBox = column();
         titleBox.setGravity(Gravity.CENTER_VERTICAL);
-        TextView mapTitle = text("Navegação", 20, Color.WHITE, true);
+        TextView mapTitle = text("Explorar mapa", 21, Color.WHITE, true);
         mapTitle.setGravity(Gravity.CENTER_VERTICAL | Gravity.LEFT);
-        titleBox.addView(mapTitle, new LinearLayout.LayoutParams(-1, dp(26)));
-        TextView mapSubtitle = text("MAPA • OPENSTREETMAP", 9, CYAN, true);
+        titleBox.addView(mapTitle, new LinearLayout.LayoutParams(-1, dp(28)));
+        TextView mapSubtitle = text("GPS AO VIVO  •  OPENSTREETMAP", 10, CYAN, true);
         mapSubtitle.setGravity(Gravity.CENTER_VERTICAL | Gravity.LEFT);
-        titleBox.addView(mapSubtitle, new LinearLayout.LayoutParams(-1, dp(18)));
-        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(0, dp(44), 1);
+        titleBox.addView(mapSubtitle, new LinearLayout.LayoutParams(-1, dp(19)));
+        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(0, dp(48), 1);
         titleParams.setMargins(dp(12), 0, 0, 0);
         top.addView(titleBox, titleParams);
-        mapScreen.addView(top, new LinearLayout.LayoutParams(-1, dp(48)));
+        TextView liveBadge = text("●", 14, CYAN, true);
+        liveBadge.setBackground(shape(Color.rgb(9, 47, 52), Color.rgb(0, 125, 140), 1, 30));
+        top.addView(liveBadge, new LinearLayout.LayoutParams(dp(40), dp(40)));
+        mapScreen.addView(top, new LinearLayout.LayoutParams(-1, dp(52)));
 
         LinearLayout searchCard = new LinearLayout(this);
         searchCard.setGravity(Gravity.CENTER_VERTICAL);
-        searchCard.setPadding(dp(8), dp(6), dp(8), dp(6));
-        searchCard.setBackground(shape(PANEL, Color.rgb(35, 55, 82), 1, 16));
+        searchCard.setPadding(dp(10), dp(5), dp(7), dp(5));
+        searchCard.setBackground(shape(Color.rgb(20, 30, 44), Color.rgb(48, 68, 88), 1, 17));
+        TextView searchIcon = text("⌕", 26, CYAN, true);
+        searchCard.addView(searchIcon, new LinearLayout.LayoutParams(dp(34), dp(44)));
         destinationInput = new EditText(this);
         destinationInput.setSingleLine(true);
         destinationInput.setTextColor(Color.WHITE);
         destinationInput.setHintTextColor(MUTED);
-        destinationInput.setHint("Cidade, endereço ou destino");
+        destinationInput.setHint("Para onde vamos?");
         destinationInput.setTextSize(14);
-        destinationInput.setPadding(dp(10), 0, dp(8), 0);
+        destinationInput.setPadding(dp(5), 0, dp(5), 0);
         destinationInput.setBackgroundColor(Color.TRANSPARENT);
         searchCard.addView(destinationInput, new LinearLayout.LayoutParams(0, dp(46), 1));
-        Button go = button("IR");
-        go.setTextSize(13);
+        Button go = button("BUSCAR");
+        go.setTextSize(11);
+        go.setBackground(shape(Color.rgb(0, 142, 157), Color.rgb(0, 210, 225), 1, 13));
         go.setOnClickListener(v -> calculateRoute());
-        LinearLayout.LayoutParams goParams = new LinearLayout.LayoutParams(dp(58), dp(44));
-        goParams.setMargins(dp(6), 0, 0, 0);
+        LinearLayout.LayoutParams goParams = new LinearLayout.LayoutParams(dp(82), dp(42));
+        goParams.setMargins(dp(4), 0, 0, 0);
         searchCard.addView(go, goParams);
         LinearLayout.LayoutParams searchParams = new LinearLayout.LayoutParams(-1, dp(58));
-        searchParams.setMargins(0, dp(8), 0, dp(6));
+        searchParams.setMargins(0, dp(10), 0, dp(8));
         mapScreen.addView(searchCard, searchParams);
 
-        navInfo = text("Mapa gratuito • aguardando destino", 11, MUTED, false);
+        // A informação de rota fica num cartão próprio, sem cobrir o mapa.
+        navInfo = text("PRONTO PARA NAVEGAR  •  Informe um destino acima", 11, MUTED, true);
         navInfo.setGravity(Gravity.CENTER_VERTICAL | Gravity.LEFT);
-        navInfo.setPadding(dp(4), 0, dp(4), 0);
-        mapScreen.addView(navInfo, new LinearLayout.LayoutParams(-1, dp(30)));
+        navInfo.setPadding(dp(12), 0, dp(12), 0);
+        navInfo.setBackground(shape(Color.rgb(15, 26, 38), Color.rgb(33, 53, 71), 1, 12));
+        mapScreen.addView(navInfo, new LinearLayout.LayoutParams(-1, dp(40)));
 
         map = new MapView(this);
         map.setTileSource(TileSourceFactory.MAPNIK);
@@ -294,14 +305,27 @@ public class MainActivity extends Activity {
         map.getController().setCenter(new GeoPoint(-30.9, -53.25));
         map.setBackgroundColor(Color.rgb(232, 230, 222));
         LinearLayout.LayoutParams mapParams = new LinearLayout.LayoutParams(-1, 0, 1);
-        mapParams.setMargins(0, dp(4), 0, dp(10));
+        mapParams.setMargins(0, dp(10), 0, dp(10));
         mapScreen.addView(map, mapParams);
+
+        LinearLayout bottomPanel = column();
+        bottomPanel.setPadding(dp(10), dp(10), dp(10), dp(10));
+        bottomPanel.setBackground(shape(Color.rgb(17, 27, 40), Color.rgb(38, 59, 77), 1, 20));
+        LinearLayout bottomTitle = new LinearLayout(this);
+        bottomTitle.setGravity(Gravity.CENTER_VERTICAL);
+        TextView toolsTitle = text("FERRAMENTAS DO MAPA", 10, MUTED, true);
+        toolsTitle.setGravity(Gravity.CENTER_VERTICAL | Gravity.LEFT);
+        bottomTitle.addView(toolsTitle, new LinearLayout.LayoutParams(0, dp(22), 1));
+        TextView mapStatus = text("● ONLINE", 10, CYAN, true);
+        bottomTitle.addView(mapStatus, new LinearLayout.LayoutParams(-2, dp(22)));
+        bottomPanel.addView(bottomTitle, new LinearLayout.LayoutParams(-1, dp(22)));
 
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         actions.setGravity(Gravity.CENTER_VERTICAL);
-        Button gpsBtn = button("◎  MEU GPS");
+        Button gpsBtn = button("◎  MINHA POSIÇÃO");
         gpsBtn.setTextSize(11);
+        gpsBtn.setBackground(shape(Color.rgb(0, 104, 119), Color.rgb(0, 220, 235), 1, 14));
         gpsBtn.setOnClickListener(v -> {
             if (currentLocation != null) {
                 map.getController().animateTo(new GeoPoint(currentLocation.getLatitude(), currentLocation.getLongitude()));
@@ -309,20 +333,24 @@ public class MainActivity extends Activity {
             } else Toast.makeText(this, "Aguardando sinal GPS", Toast.LENGTH_SHORT).show();
         });
         actions.addView(gpsBtn, new LinearLayout.LayoutParams(0, dp(48), 1));
-        Button markBtn = button("＋  MARCAR");
+        Button markBtn = button("＋  SALVAR LOCAL");
         markBtn.setTextSize(11);
         markBtn.setOnClickListener(v -> createSavedPlace());
         LinearLayout.LayoutParams markParams = new LinearLayout.LayoutParams(0, dp(48), 1);
         markParams.setMargins(dp(8), 0, 0, 0);
         actions.addView(markBtn, markParams);
         LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(-1, dp(50));
-        actionsParams.setMargins(0, 0, 0, dp(6));
-        mapScreen.addView(actions, actionsParams);
+        actionsParams.setMargins(0, dp(6), 0, dp(6));
+        bottomPanel.addView(actions, actionsParams);
 
-        Button placesBtn = button("★  MINHAS MARCAÇÕES");
+        Button placesBtn = button("★   ABRIR MEUS LOCAIS SALVOS");
         placesBtn.setTextSize(12);
+        placesBtn.setBackground(shape(Color.rgb(25, 37, 51), Color.rgb(54, 78, 98), 1, 14));
         placesBtn.setOnClickListener(v -> showSavedPlaces());
-        mapScreen.addView(placesBtn, new LinearLayout.LayoutParams(-1, dp(46)));
+        bottomPanel.addView(placesBtn, new LinearLayout.LayoutParams(-1, dp(44)));
+        LinearLayout.LayoutParams bottomParams = new LinearLayout.LayoutParams(-1, -2);
+        bottomParams.setMargins(0, 0, 0, dp(2));
+        mapScreen.addView(bottomPanel, bottomParams);
 
         loadPlaceMarkers();
         content.addView(speedScroll, new FrameLayout.LayoutParams(-1, -1));
