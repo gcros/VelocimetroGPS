@@ -370,8 +370,27 @@ public class MainActivity extends Activity {
                 String placeName = name.getText().toString().trim(); if (placeName.isEmpty()) placeName = "Lugar salvo";
                 String placeDesc = desc.getText().toString().trim();
                 final String finalName = placeName, finalDesc = placeDesc;
-                String[] icons = {"⛪ Igreja / capela", "✝️ Cruz / santinha", "⛽ Posto", "🔧 Oficina", "🌉 Ponte", "💧 Cachoeira", "🍴 Restaurante", "📍 Outro"};
-                String[] symbols = {"⛪","✝️","⛽","🔧","🌉","💧","🍴","📍"};
+                String[] icons = {
+                    "⛪ Igreja / capela", "✝️ Cruz / santinha", "🕊️ Marco religioso", "🏥 Hospital / posto de saúde",
+                    "🚑 Emergência", "🚒 Bombeiros", "🚓 Polícia", "⛽ Posto de combustível", "🔌 Recarga elétrica",
+                    "🔧 Oficina mecânica", "🛞 Borracharia", "🚗 Estacionamento", "🚌 Parada de ônibus",
+                    "🏠 Casa", "🏢 Prédio / comércio", "🏪 Mercado / loja", "🏦 Banco", "📮 Correios",
+                    "🍴 Restaurante", "☕ Café / lancheria", "🛒 Supermercado", "🛏️ Hotel / pousada",
+                    "🌉 Ponte", "🚧 Obra / bloqueio", "⚠️ Perigo / atenção", "🕳️ Buraco na estrada",
+                    "🛣️ Entrada / saída", "📍 Ponto de referência", "🅿️ Estacionamento", "🚜 Máquina / serviço",
+                    "🌾 Lavoura / plantação", "🐄 Gado / fazenda", "💧 Cachoeira / água", "🏞️ Mirante / paisagem",
+                    "🌳 Árvore / sombra", "🏕️ Camping", "🎣 Pesca", "🏖️ Praia / balneário",
+                    "🏫 Escola", "🎓 Universidade", "⚽ Campo / esporte", "🏟️ Estádio",
+                    "🛍️ Feira / compras", "📦 Entrega / coleta", "🗑️ Descarte / bota-fora",
+                    "🪨 Pedreira / cascalho", "🪵 Madeira", "🚰 Água potável", "🚻 Banheiro",
+                    "🐕 Animal", "📷 Foto / ponto turístico", "⭐ Favorito", "❓ Outro"
+                };
+                String[] symbols = {
+                    "⛪","✝️","🕊️","🏥","🚑","🚒","🚓","⛽","🔌","🔧","🛞","🚗","🚌",
+                    "🏠","🏢","🏪","🏦","📮","🍴","☕","🛒","🛏️","🌉","🚧","⚠️","🕳️",
+                    "🛣️","📍","🅿️","🚜","🌾","🐄","💧","🏞️","🌳","🏕️","🎣","🏖️",
+                    "🏫","🎓","⚽","🏟️","🛍️","📦","🗑️","🪨","🪵","🚰","🚻","🐕","📷","⭐","❓"
+                };
                 new AlertDialog.Builder(this).setTitle("Escolha um ícone").setItems(icons, (dialog, which) -> {
                     try {
                         JSONObject p = new JSONObject(); p.put("id", System.currentTimeMillis()); p.put("name", finalName); p.put("description", finalDesc);
