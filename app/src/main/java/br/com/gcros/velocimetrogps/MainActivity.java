@@ -9,6 +9,9 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.SharedPreferences;
 import android.content.Intent;
+import android.net.Uri;
+import androidx.core.content.FileProvider;
+import java.io.File;
 import android.os.Build;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -232,6 +235,14 @@ public class MainActivity extends Activity {
         openMap.setTextSize(14);
         openMap.setOnClickListener(v -> showMap());
         speedScreen.addView(openMap, new LinearLayout.LayoutParams(-1, dp(54)));
+
+        Button sendWatch = button("⌚   ENVIAR PARA SMARTWATCH");
+        sendWatch.setTextSize(14);
+        sendWatch.setBackground(shape(Color.rgb(0, 104, 119), Color.rgb(0, 220, 235), 1, 15));
+        sendWatch.setOnClickListener(v -> shareApkToWatch());
+        LinearLayout.LayoutParams watchParams = new LinearLayout.LayoutParams(-1, dp(54));
+        watchParams.setMargins(0, dp(10), 0, 0);
+        speedScreen.addView(sendWatch, watchParams);
         speedScroll.addView(speedScreen, new android.widget.ScrollView.LayoutParams(-1, -2));
 
         // NOVO MAPA: visual de navegação, área do mapa ampla e ações agrupadas em painel inferior.
@@ -356,6 +367,20 @@ public class MainActivity extends Activity {
         content.addView(speedScroll, new FrameLayout.LayoutParams(-1, -1));
         setContentView(content);
     }
+    private void shareApkToWatch() {
+        try {
+            File apk = new File(getApplicationInfo().sourceDir);
+            Uri apkUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", apk);
+            Intent send = new Intent(Intent.ACTION_SEND);
+            send.setType("application/vnd.android.package-archive");
+            send.putExtra(Intent.EXTRA_STREAM, apkUri);
+            send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(Intent.createChooser(send, "Enviar Velocímetro GPS para o smartwatch"));
+        } catch (Exception e) {
+            Toast.makeText(this, "Não foi possível preparar o APK para compartilhamento: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
     private void showMap() { content.removeAllViews(); content.addView(mapScreen); if(map!=null)map.onResume(); if(currentLocation!=null)map.getController().animateTo(new GeoPoint(currentLocation.getLatitude(),currentLocation.getLongitude())); }
     private void showSpeed() { if(map!=null)map.onPause(); content.removeAllViews(); content.addView(speedScroll,new FrameLayout.LayoutParams(-1,-1)); }
 
